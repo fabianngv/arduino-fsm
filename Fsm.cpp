@@ -16,7 +16,7 @@
 #include "Fsm.h"
 
 
-State::State(void (*on_enter)(), void (*on_state)(), void (*on_exit)())
+State::State(FsmMemFn on_enter, FsmMemFn on_state, FsmMemFn on_exit)
 : on_enter(on_enter),
   on_state(on_state),
   on_exit(on_exit)
@@ -44,7 +44,7 @@ Fsm::~Fsm()
 
 
 void Fsm::add_transition(State* state_from, State* state_to, int event,
-                         void (*on_transition)())
+                         FsmMemFn on_transition)
 {
   if (state_from == NULL || state_to == NULL)
     return;
@@ -59,7 +59,7 @@ void Fsm::add_transition(State* state_from, State* state_to, int event,
 
 
 void Fsm::add_timed_transition(State* state_from, State* state_to,
-                               unsigned long interval, void (*on_transition)())
+                               unsigned long interval, FsmMemFn on_transition)
 {
   if (state_from == NULL || state_to == NULL)
     return;
@@ -80,7 +80,7 @@ void Fsm::add_timed_transition(State* state_from, State* state_to,
 
 
 Fsm::Transition Fsm::create_transition(State* state_from, State* state_to,
-                                       int event, void (*on_transition)())
+                                       int event, FsmMemFn on_transition)
 {
   Transition t;
   t.state_from = state_from;
@@ -138,28 +138,28 @@ void Fsm::run_machine()
   {
     m_initialized = true;
     if (m_current_state->on_enter != NULL)
-      m_current_state->on_enter();
+      CALL_MEMBER_FN(this, m_current_state->on_enter)();
   }
-  
+
   if (m_current_state->on_state != NULL)
-    m_current_state->on_state();
-    
+    CALL_MEMBER_FN(this, m_current_state->on_state)();
+
   Fsm::check_timed_transitions();
 }
 
 void Fsm::make_transition(Transition* transition)
 {
- 
+
   // Execute the handlers in the correct order.
   if (transition->state_from->on_exit != NULL)
-    transition->state_from->on_exit();
+    CALL_MEMBER_FN(this, transition->state_from->on_exit)();
 
   if (transition->on_transition != NULL)
-    transition->on_transition();
+    CALL_MEMBER_FN(this, transition->on_transition)();
 
   if (transition->state_to->on_enter != NULL)
-    transition->state_to->on_enter();
-  
+    CALL_MEMBER_FN(this, transition->state_to->on_enter)();
+
   m_current_state = transition->state_to;
 
   //Initialice all timed transitions from m_current_state

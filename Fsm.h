@@ -23,13 +23,19 @@
   #include <WProgram.h>
 #endif
 
+// https://isocpp.org/wiki/faq/pointers-to-members
+#define CALL_MEMBER_FN(object,ptrToMember)  ((object)->*(ptrToMember))
+
+class Fsm;
+
+typedef void (Fsm::*FsmMemFn)();
 
 struct State
 {
-  State(void (*on_enter)(), void (*on_state)(), void (*on_exit)());
-  void (*on_enter)();
-  void (*on_state)();
-  void (*on_exit)();
+  State(FsmMemFn on_enter, FsmMemFn on_state, FsmMemFn on_exit);
+  FsmMemFn on_enter;
+  FsmMemFn on_state;
+  FsmMemFn on_exit;
 };
 
 
@@ -40,10 +46,10 @@ public:
   ~Fsm();
 
   void add_transition(State* state_from, State* state_to, int event,
-                      void (*on_transition)());
+                      FsmMemFn on_transition);
 
   void add_timed_transition(State* state_from, State* state_to,
-                            unsigned long interval, void (*on_transition)());
+                            unsigned long interval, FsmMemFn on_transition);
 
   void check_timed_transitions();
 
@@ -56,7 +62,7 @@ private:
     State* state_from;
     State* state_to;
     int event;
-    void (*on_transition)();
+    FsmMemFn on_transition;
 
   };
   struct TimedTransition
@@ -67,7 +73,7 @@ private:
   };
 
   static Transition create_transition(State* state_from, State* state_to,
-                                      int event, void (*on_transition)());
+                                      int event, FsmMemFn on_transition);
 
   void make_transition(Transition* transition);
 
