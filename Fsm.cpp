@@ -15,160 +15,193 @@
 
 #include "Fsm.h"
 
+State::State(void (*on_enter)(), void (*on_state)(), void (*on_exit)())
+    : StateInterface(), on_enter(on_enter), on_state(on_state),
+      on_exit(on_exit) {}
 
-State::State(FsmMemFn on_enter, FsmMemFn on_state, FsmMemFn on_exit)
-: on_enter(on_enter),
-  on_state(on_state),
-  on_exit(on_exit)
-{
-}
+StateMember::StateMember(FsmMemFn on_enter, FsmMemFn on_state, FsmMemFn on_exit,
+                         Fsm *fsm)
+    : StateInterface(), on_enter(on_enter), on_state(on_state),
+      on_exit(on_exit), fsm(fsm) {}
 
+Fsm::Fsm(StateInterface *initial_state)
+    : m_current_state(initial_state), m_transitions(NULL),
+      m_timed_transitions(NULL), m_initialized(false) {}
 
-Fsm::Fsm(State* initial_state)
-: m_current_state(initial_state),
-  m_transitions(NULL),
-  m_num_transitions(0),
-  m_num_timed_transitions(0),
-  m_initialized(false)
-{
-}
-
-
-Fsm::~Fsm()
-{
-  free(m_transitions);
-  free(m_timed_transitions);
+Fsm::~Fsm() {
+  TransitionInterface *t = m_transitions;
+  while (t != NULL) {
+    TransitionInterface *transition = t;
+    t = transition->next;
+    delete transition;
+  }
+  TimedTransition *tt = m_timed_transitions;
+  while (tt != NULL) {
+    TimedTransition *timed_transition = tt;
+    tt = timed_transition->next;
+    delete timed_transition->transition;
+    delete timed_transition;
+  }
   m_transitions = NULL;
   m_timed_transitions = NULL;
 }
 
+void Fsm::add_transition(StateInterface *state_from, StateInterface *state_to,
+                         int event, void (*on_transition)()) {
 
-void Fsm::add_transition(State* state_from, State* state_to, int event,
-                         FsmMemFn on_transition)
-{
-  if (state_from == NULL || state_to == NULL)
+  add_transition(create_transition(state_from, state_to, event, on_transition));
+}
+
+void Fsm::add_transition(StateInterface *state_from, StateInterface *state_to,
+                         int event, FsmMemFn on_transition) {
+
+  add_transition(create_transition(state_from, state_to, event, on_transition));
+}
+
+void Fsm::add_transition(TransitionInterface *transition) {
+  if (transition == NULL)
     return;
 
-  Transition transition = Fsm::create_transition(state_from, state_to, event,
-                                               on_transition);
-  m_transitions = (Transition*) realloc(m_transitions, (m_num_transitions + 1)
-                                                       * sizeof(Transition));
-  m_transitions[m_num_transitions] = transition;
-  m_num_transitions++;
+  TransitionInterface *head = m_transitions;
+  while (head->next != NULL)
+    head = head->next;
+  head->next = transition;
 }
 
+void Fsm::add_timed_transition(StateInterface *state_from,
+                               StateInterface *state_to, unsigned long interval,
+                               void (*on_transition)()) {
+  add_timed_transition(
+      interval, create_transition(state_from, state_to, 0, on_transition));
+}
 
-void Fsm::add_timed_transition(State* state_from, State* state_to,
-                               unsigned long interval, FsmMemFn on_transition)
-{
-  if (state_from == NULL || state_to == NULL)
+void Fsm::add_timed_transition(StateInterface *state_from,
+                               StateInterface *state_to, unsigned long interval,
+                               FsmMemFn on_transition) {
+  add_timed_transition(
+      interval, create_transition(state_from, state_to, 0, on_transition));
+}
+
+void Fsm::add_timed_transition(unsigned long interval,
+                               TransitionInterface *transition) {
+  if (transition == NULL)
     return;
 
-  Transition transition = Fsm::create_transition(state_from, state_to, 0,
-                                                 on_transition);
+  TimedTransition *timed_transition = new TimedTransition();
+  timed_transition->transition = transition;
+  timed_transition->start = 0;
+  timed_transition->interval = interval;
+  timed_transition->next = NULL;
 
-  TimedTransition timed_transition;
-  timed_transition.transition = transition;
-  timed_transition.start = 0;
-  timed_transition.interval = interval;
-
-  m_timed_transitions = (TimedTransition*) realloc(
-      m_timed_transitions, (m_num_timed_transitions + 1) * sizeof(TimedTransition));
-  m_timed_transitions[m_num_timed_transitions] = timed_transition;
-  m_num_timed_transitions++;
+  TimedTransition *head = m_timed_transitions;
+  while (head->next != NULL)
+    head = head->next;
+  head->next = timed_transition;
 }
 
+Fsm::TransitionInterface *Fsm::create_transition(StateInterface *state_from,
+                                                 StateInterface *state_to,
+                                                 int event,
+                                                 void (*on_transition)()) {
 
-Fsm::Transition Fsm::create_transition(State* state_from, State* state_to,
-                                       int event, FsmMemFn on_transition)
-{
-  Transition t;
-  t.state_from = state_from;
-  t.state_to = state_to;
-  t.event = event;
-  t.on_transition = on_transition;
+  Transition *transition = new Transition();
+  transition->on_transition = on_transition;
 
-  return t;
+  return create_transition(state_from, state_to, event, transition);
 }
 
-void Fsm::trigger(int event)
-{
-  if (m_initialized)
-  {
+Fsm::TransitionInterface *Fsm::create_transition(StateInterface *state_from,
+                                                 StateInterface *state_to,
+                                                 int event,
+                                                 FsmMemFn on_transition) {
+
+  TransitionMember *transition = new TransitionMember();
+  transition->on_transition = on_transition;
+
+  return create_transition(state_from, state_to, event, transition);
+}
+
+Fsm::TransitionInterface *
+Fsm::create_transition(StateInterface *state_from, StateInterface *state_to,
+                       int event, TransitionInterface *transition) {
+  if (state_from == NULL || state_to == NULL) {
+    delete transition;
+    return NULL;
+  }
+
+  transition->state_from = state_from;
+  transition->state_to = state_to;
+  transition->event = event;
+  transition->next = NULL;
+
+  return transition;
+}
+
+void Fsm::trigger(int event) {
+  if (m_initialized) {
     // Find the transition with the current state and given event.
-    for (int i = 0; i < m_num_transitions; ++i)
-    {
-      if (m_transitions[i].state_from == m_current_state &&
-          m_transitions[i].event == event)
-      {
-        Fsm::make_transition(&(m_transitions[i]));
+    TransitionInterface *head = m_transitions;
+    while (head != NULL) {
+      TransitionInterface *transition = head;
+      if (transition->state_from == m_current_state &&
+          transition->event == event) {
+        Fsm::make_transition(transition);
         return;
       }
+      head = transition->next;
     }
   }
 }
 
-void Fsm::check_timed_transitions()
-{
-  for (int i = 0; i < m_num_timed_transitions; ++i)
-  {
-    TimedTransition* transition = &m_timed_transitions[i];
-    if (transition->transition.state_from == m_current_state)
-    {
-      if (transition->start == 0)
-      {
-        transition->start = millis();
-      }
-      else{
+void Fsm::check_timed_transitions() {
+  TimedTransition *head = m_timed_transitions;
+  while (head != NULL) {
+    TimedTransition *ttransition = head;
+    if (ttransition->transition->state_from == m_current_state) {
+      if (ttransition->start == 0) {
+        ttransition->start = millis();
+      } else {
         unsigned long now = millis();
-        if (now - transition->start >= transition->interval)
-        {
-          Fsm::make_transition(&(transition->transition));
-          transition->start = 0;
+        if (now - ttransition->start >= ttransition->interval) {
+          Fsm::make_transition(ttransition->transition);
+          ttransition->start = 0;
         }
       }
     }
+    head = ttransition->next;
   }
 }
 
-void Fsm::run_machine()
-{
+void Fsm::run_machine() {
   // first run must exec first state "on_enter"
-  if (!m_initialized)
-  {
+  if (!m_initialized) {
     m_initialized = true;
-    if (m_current_state->on_enter != NULL)
-      CALL_MEMBER_FN(this, m_current_state->on_enter)();
+    m_current_state->enter();
   }
 
-  if (m_current_state->on_state != NULL)
-    CALL_MEMBER_FN(this, m_current_state->on_state)();
+  m_current_state->state();
 
   Fsm::check_timed_transitions();
 }
 
-void Fsm::make_transition(Transition* transition)
-{
+void Fsm::make_transition(TransitionInterface *transition) {
 
   // Execute the handlers in the correct order.
-  if (transition->state_from->on_exit != NULL)
-    CALL_MEMBER_FN(this, transition->state_from->on_exit)();
+  transition->state_from->exit();
 
-  if (transition->on_transition != NULL)
-    CALL_MEMBER_FN(this, transition->on_transition)();
+  transition->transition();
 
-  if (transition->state_to->on_enter != NULL)
-    CALL_MEMBER_FN(this, transition->state_to->on_enter)();
+  transition->state_to->enter();
 
   m_current_state = transition->state_to;
 
-  //Initialice all timed transitions from m_current_state
+  // Initialice all timed transitions from m_current_state
   unsigned long now = millis();
-  for (int i = 0; i < m_num_timed_transitions; ++i)
-  {
-    TimedTransition* ttransition = &m_timed_transitions[i];
-    if (ttransition->transition.state_from == m_current_state)
+  TimedTransition *head = m_timed_transitions;
+  while (head != NULL) {
+    TimedTransition *ttransition = head;
+    if (ttransition->transition->state_from == m_current_state)
       ttransition->start = now;
+    head = ttransition->next;
   }
-
 }

@@ -1,2 +1,7 @@
 Fsm	KEYWORD1
+StateInterface KEYWORD1
 State	KEYWORD1
+StateMember KEYWORD1
+TransitionInterface KEYWORD1
+Transition KEYWORD1
+TransitionMember KEYWORD1
