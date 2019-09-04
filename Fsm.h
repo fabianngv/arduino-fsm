@@ -82,7 +82,7 @@ public:
                       int event, void (*on_transition)());
 
   void add_transition(StateInterface *state_from, StateInterface *state_to,
-                      int event, FsmMemFn on_transition);
+                      int event, FsmMemFn on_transition, Fsm *fsm);
 
   void add_timed_transition(StateInterface *state_from,
                             StateInterface *state_to, unsigned long interval,
@@ -90,7 +90,7 @@ public:
 
   void add_timed_transition(StateInterface *state_from,
                             StateInterface *state_to, unsigned long interval,
-                            FsmMemFn on_transition);
+                            FsmMemFn on_transition, Fsm *fsm);
 
   void check_timed_transitions();
 
@@ -128,6 +128,9 @@ protected:
     TimedTransition *next;
   };
 
+  void make_transition(TransitionInterface *transition);
+
+private:
   void add_transition(TransitionInterface *transition);
 
   void add_timed_transition(unsigned long interval,
@@ -139,15 +142,12 @@ protected:
 
   TransitionInterface *create_transition(StateInterface *state_from,
                                          StateInterface *state_to, int event,
-                                         FsmMemFn on_transition);
+                                         FsmMemFn on_transition, Fsm *fsm);
 
   TransitionInterface *create_transition(StateInterface *state_from,
                                          StateInterface *state_to, int event,
                                          TransitionInterface *transition);
 
-  void make_transition(TransitionInterface *transition);
-
-private:
   StateInterface *m_current_state;
   TransitionInterface *m_transitions;
   TimedTransition *m_timed_transitions;

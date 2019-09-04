@@ -53,9 +53,10 @@ void Fsm::add_transition(StateInterface *state_from, StateInterface *state_to,
 }
 
 void Fsm::add_transition(StateInterface *state_from, StateInterface *state_to,
-                         int event, FsmMemFn on_transition) {
+                         int event, FsmMemFn on_transition, Fsm *fsm) {
 
-  add_transition(create_transition(state_from, state_to, event, on_transition));
+  add_transition(
+      create_transition(state_from, state_to, event, on_transition, fsm));
 }
 
 void Fsm::add_transition(TransitionInterface *transition) {
@@ -77,9 +78,9 @@ void Fsm::add_timed_transition(StateInterface *state_from,
 
 void Fsm::add_timed_transition(StateInterface *state_from,
                                StateInterface *state_to, unsigned long interval,
-                               FsmMemFn on_transition) {
+                               FsmMemFn on_transition, Fsm *fsm) {
   add_timed_transition(
-      interval, create_transition(state_from, state_to, 0, on_transition));
+      interval, create_transition(state_from, state_to, 0, on_transition, fsm));
 }
 
 void Fsm::add_timed_transition(unsigned long interval,
@@ -110,13 +111,13 @@ Fsm::TransitionInterface *Fsm::create_transition(StateInterface *state_from,
   return create_transition(state_from, state_to, event, transition);
 }
 
-Fsm::TransitionInterface *Fsm::create_transition(StateInterface *state_from,
-                                                 StateInterface *state_to,
-                                                 int event,
-                                                 FsmMemFn on_transition) {
+Fsm::TransitionInterface *
+Fsm::create_transition(StateInterface *state_from, StateInterface *state_to,
+                       int event, FsmMemFn on_transition, Fsm *fsm) {
 
   TransitionMember *transition = new TransitionMember();
   transition->on_transition = on_transition;
+  transition->fsm = fsm;
 
   return create_transition(state_from, state_to, event, transition);
 }
