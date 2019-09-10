@@ -206,3 +206,5 @@ void Fsm::make_transition(TransitionInterface *transition) {
     head = ttransition->next;
   }
 }
+
+StateInterface *Fsm::getCurrentState() { return m_current_state; }

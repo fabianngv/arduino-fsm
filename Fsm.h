@@ -130,6 +130,8 @@ protected:
 
   void make_transition(TransitionInterface *transition);
 
+  StateInterface *getCurrentState();
+
 private:
   void add_transition(TransitionInterface *transition);
 
