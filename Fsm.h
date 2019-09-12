@@ -79,18 +79,18 @@ public:
   Fsm(StateInterface *initial_state);
   ~Fsm();
 
-  void add_transition(State *state_from, State *state_to,
+  void add_transition(StateInterface *state_from, StateInterface *state_to,
                       int event, void (*on_transition)());
 
-  void add_transition(StateMember *state_from, StateMember *state_to,
+  void add_transition(StateInterface *state_from, StateInterface *state_to,
                       int event, FsmMemFn on_transition, Fsm *fsm);
 
-  void add_timed_transition(State *state_from,
-                            State *state_to, unsigned long interval,
+  void add_timed_transition(StateInterface *state_from,
+                            StateInterface *state_to, unsigned long interval,
                             void (*on_transition)());
 
-  void add_timed_transition(StateMember *state_from,
-                            StateMember *state_to, unsigned long interval,
+  void add_timed_transition(StateInterface *state_from,
+                            StateInterface *state_to, unsigned long interval,
                             FsmMemFn on_transition, Fsm *fsm);
 
   void check_timed_transitions();
@@ -139,12 +139,12 @@ private:
   void add_timed_transition(unsigned long interval,
                             TransitionInterface *transition);
 
-  TransitionInterface *create_transition(State *state_from,
-                                         State *state_to, int event,
+  TransitionInterface *create_transition(StateInterface *state_from,
+                                         StateInterface *state_to, int event,
                                          void (*on_transition)());
 
-  TransitionInterface *create_transition(StateMember *state_from,
-                                         StateMember *state_to, int event,
+  TransitionInterface *create_transition(StateInterface *state_from,
+                                         StateInterface *state_to, int event,
                                          FsmMemFn on_transition, Fsm *fsm);
 
   TransitionInterface *create_transition(StateInterface *state_from,
