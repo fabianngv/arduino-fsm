@@ -15,6 +15,15 @@
 
 #include "Fsm.h"
 
+#if !defined(ARDUINO)
+#include <sys/time.h>
+unsigned long millis() {
+  struct timeval tp;
+  gettimeofday(&tp, NULL);
+  return tp.tv_sec * 1000 + tp.tv_usec / 1000;
+}
+#endif
+
 State::State(void (*on_enter)(), void (*on_state)(), void (*on_exit)())
     : StateInterface(), on_enter(on_enter), on_state(on_state),
       on_exit(on_exit) {}
@@ -46,13 +55,12 @@ Fsm::~Fsm() {
   m_timed_transitions = NULL;
 }
 
-void Fsm::add_transition(StateInterface *state_from, StateInterface *state_to,
-                         int event, void (*on_transition)()) {
-
+void Fsm::add_transition(State *state_from, State *state_to, int event,
+                         void (*on_transition)()) {
   add_transition(create_transition(state_from, state_to, event, on_transition));
 }
 
-void Fsm::add_transition(StateInterface *state_from, StateInterface *state_to,
+void Fsm::add_transition(StateMember *state_from, StateMember *state_to,
                          int event, FsmMemFn on_transition, Fsm *fsm) {
 
   add_transition(
@@ -63,22 +71,25 @@ void Fsm::add_transition(TransitionInterface *transition) {
   if (transition == NULL)
     return;
 
-  TransitionInterface *head = m_transitions;
-  while (head->next != NULL)
-    head = head->next;
-  head->next = transition;
+  if (m_transitions != NULL) {
+    TransitionInterface *head = m_transitions;
+    while (head->next != NULL)
+      head = head->next;
+    head->next = transition;
+  } else
+    m_transitions = transition;
 }
 
-void Fsm::add_timed_transition(StateInterface *state_from,
-                               StateInterface *state_to, unsigned long interval,
+void Fsm::add_timed_transition(State *state_from, State *state_to,
+                               unsigned long interval,
                                void (*on_transition)()) {
   add_timed_transition(
       interval, create_transition(state_from, state_to, 0, on_transition));
 }
 
-void Fsm::add_timed_transition(StateInterface *state_from,
-                               StateInterface *state_to, unsigned long interval,
-                               FsmMemFn on_transition, Fsm *fsm) {
+void Fsm::add_timed_transition(StateMember *state_from, StateMember *state_to,
+                               unsigned long interval, FsmMemFn on_transition,
+                               Fsm *fsm) {
   add_timed_transition(
       interval, create_transition(state_from, state_to, 0, on_transition, fsm));
 }
@@ -94,15 +105,17 @@ void Fsm::add_timed_transition(unsigned long interval,
   timed_transition->interval = interval;
   timed_transition->next = NULL;
 
-  TimedTransition *head = m_timed_transitions;
-  while (head->next != NULL)
-    head = head->next;
-  head->next = timed_transition;
+  if (m_timed_transitions != NULL) {
+    TimedTransition *head = m_timed_transitions;
+    while (head->next != NULL)
+      head = head->next;
+    head->next = timed_transition;
+  } else
+    m_timed_transitions = timed_transition;
 }
 
-Fsm::TransitionInterface *Fsm::create_transition(StateInterface *state_from,
-                                                 StateInterface *state_to,
-                                                 int event,
+Fsm::TransitionInterface *Fsm::create_transition(State *state_from,
+                                                 State *state_to, int event,
                                                  void (*on_transition)()) {
 
   Transition *transition = new Transition();
@@ -112,7 +125,7 @@ Fsm::TransitionInterface *Fsm::create_transition(StateInterface *state_from,
 }
 
 Fsm::TransitionInterface *
-Fsm::create_transition(StateInterface *state_from, StateInterface *state_to,
+Fsm::create_transition(StateMember *state_from, StateMember *state_to,
                        int event, FsmMemFn on_transition, Fsm *fsm) {
 
   TransitionMember *transition = new TransitionMember();
@@ -186,7 +199,6 @@ void Fsm::run_machine() {
 }
 
 void Fsm::make_transition(TransitionInterface *transition) {
-
   // Execute the handlers in the correct order.
   transition->state_from->exit();
 
