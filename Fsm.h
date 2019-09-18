@@ -133,6 +133,8 @@ protected:
 
   StateInterface *getCurrentState();
 
+  void reset_timers();
+
 private:
   void add_transition(TransitionInterface *transition);
 

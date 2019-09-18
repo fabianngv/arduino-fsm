@@ -210,6 +210,13 @@ void Fsm::make_transition(TransitionInterface *transition) {
   m_current_state = transition->state_to;
 
   // Initialice all timed transitions from m_current_state
+  reset_timers();
+}
+
+StateInterface *Fsm::getCurrentState() { return m_current_state; }
+
+void Fsm::reset_timers(void) {
+  // Initialice all timed transitions from m_current_state
   unsigned long now = millis();
   TimedTransition *head = m_timed_transitions;
   while (head != NULL) {
@@ -219,5 +226,3 @@ void Fsm::make_transition(TransitionInterface *transition) {
     head = ttransition->next;
   }
 }
-
-StateInterface *Fsm::getCurrentState() { return m_current_state; }
