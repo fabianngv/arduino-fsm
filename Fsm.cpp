@@ -19,7 +19,7 @@
 #include <sys/time.h>
 unsigned long millis() {
   struct timeval tp;
-  gettimeofday(&tp, NULL);
+  gettimeofday(&tp, nullptr);
   return tp.tv_sec * 1000 + tp.tv_usec / 1000;
 }
 #endif
@@ -34,25 +34,25 @@ StateMember::StateMember(FsmMemFn on_enter, FsmMemFn on_state, FsmMemFn on_exit,
       on_exit(on_exit), fsm(fsm) {}
 
 Fsm::Fsm(StateInterface *initial_state)
-    : m_current_state(initial_state), m_transitions(NULL),
-      m_timed_transitions(NULL), m_initialized(false) {}
+    : m_current_state(initial_state), m_transitions(nullptr),
+      m_timed_transitions(nullptr), m_initialized(false) {}
 
 Fsm::~Fsm() {
   TransitionInterface *t = m_transitions;
-  while (t != NULL) {
+  while (t != nullptr) {
     TransitionInterface *transition = t;
     t = transition->next;
     delete transition;
   }
   TimedTransition *tt = m_timed_transitions;
-  while (tt != NULL) {
+  while (tt != nullptr) {
     TimedTransition *timed_transition = tt;
     tt = timed_transition->next;
     delete timed_transition->transition;
     delete timed_transition;
   }
-  m_transitions = NULL;
-  m_timed_transitions = NULL;
+  m_transitions = nullptr;
+  m_timed_transitions = nullptr;
 }
 
 void Fsm::add_transition(StateInterface *state_from, StateInterface *state_to,
@@ -68,12 +68,12 @@ void Fsm::add_transition(StateInterface *state_from, StateInterface *state_to,
 }
 
 void Fsm::add_transition(TransitionInterface *transition) {
-  if (transition == NULL)
+  if (transition == nullptr)
     return;
 
-  if (m_transitions != NULL) {
+  if (m_transitions != nullptr) {
     TransitionInterface *head = m_transitions;
-    while (head->next != NULL)
+    while (head->next != nullptr)
       head = head->next;
     head->next = transition;
   } else
@@ -96,18 +96,18 @@ void Fsm::add_timed_transition(StateInterface *state_from,
 
 void Fsm::add_timed_transition(unsigned long interval,
                                TransitionInterface *transition) {
-  if (transition == NULL)
+  if (transition == nullptr)
     return;
 
   TimedTransition *timed_transition = new TimedTransition();
   timed_transition->transition = transition;
   timed_transition->start = 0;
   timed_transition->interval = interval;
-  timed_transition->next = NULL;
+  timed_transition->next = nullptr;
 
-  if (m_timed_transitions != NULL) {
+  if (m_timed_transitions != nullptr) {
     TimedTransition *head = m_timed_transitions;
-    while (head->next != NULL)
+    while (head->next != nullptr)
       head = head->next;
     head->next = timed_transition;
   } else
@@ -139,15 +139,15 @@ Fsm::create_transition(StateInterface *state_from, StateInterface *state_to,
 Fsm::TransitionInterface *
 Fsm::create_transition(StateInterface *state_from, StateInterface *state_to,
                        int event, TransitionInterface *transition) {
-  if (state_from == NULL || state_to == NULL) {
+  if (state_from == nullptr || state_to == nullptr) {
     delete transition;
-    return NULL;
+    return nullptr;
   }
 
   transition->state_from = state_from;
   transition->state_to = state_to;
   transition->event = event;
-  transition->next = NULL;
+  transition->next = nullptr;
 
   return transition;
 }
@@ -156,7 +156,7 @@ void Fsm::trigger(int event) {
   if (m_initialized) {
     // Find the transition with the current state and given event.
     TransitionInterface *head = m_transitions;
-    while (head != NULL) {
+    while (head != nullptr) {
       TransitionInterface *transition = head;
       if (transition->state_from == m_current_state &&
           transition->event == event) {
@@ -170,7 +170,7 @@ void Fsm::trigger(int event) {
 
 void Fsm::check_timed_transitions() {
   TimedTransition *head = m_timed_transitions;
-  while (head != NULL) {
+  while (head != nullptr) {
     TimedTransition *ttransition = head;
     if (ttransition->transition->state_from == m_current_state) {
       if (ttransition->start == 0) {
@@ -199,6 +199,8 @@ void Fsm::run_machine() {
   Fsm::check_timed_transitions();
 }
 
+StateInterface *Fsm::get_current_state() { return m_current_state; }
+
 void Fsm::make_transition(TransitionInterface *transition) {
   // Execute the handlers in the correct order.
   transition->state_from->exit();
@@ -213,13 +215,11 @@ void Fsm::make_transition(TransitionInterface *transition) {
   reset_timers();
 }
 
-StateInterface *Fsm::getCurrentState() { return m_current_state; }
-
 void Fsm::reset_timers(void) {
   // Initialice all timed transitions from m_current_state
   unsigned long now = millis();
   TimedTransition *head = m_timed_transitions;
-  while (head != NULL) {
+  while (head != nullptr) {
     TimedTransition *ttransition = head;
     if (ttransition->transition->state_from == m_current_state)
       ttransition->start = now;

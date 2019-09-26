@@ -41,15 +41,15 @@ struct State : StateInterface {
   void (*on_state)();
   void (*on_exit)();
   void enter() {
-    if (on_enter != NULL)
+    if (on_enter != nullptr)
       on_enter();
   };
   void state() {
-    if (on_state != NULL)
+    if (on_state != nullptr)
       on_state();
   };
   void exit() {
-    if (on_exit != NULL)
+    if (on_exit != nullptr)
       on_exit();
   };
 };
@@ -61,15 +61,15 @@ struct StateMember : StateInterface {
   FsmMemFn on_exit;
   Fsm *fsm;
   void enter() {
-    if (on_enter != NULL)
+    if (on_enter != nullptr)
       CALL_MEMBER_FN(fsm, on_enter)();
   };
   void state() {
-    if (on_state != NULL)
+    if (on_state != nullptr)
       CALL_MEMBER_FN(fsm, on_state)();
   };
   void exit() {
-    if (on_exit != NULL)
+    if (on_exit != nullptr)
       CALL_MEMBER_FN(fsm, on_exit)();
   };
 };
@@ -98,6 +98,8 @@ public:
   void trigger(int event);
   void run_machine();
 
+  StateInterface *get_current_state();
+
 protected:
   struct TransitionInterface {
     StateInterface *state_from;
@@ -109,7 +111,7 @@ protected:
   struct Transition : TransitionInterface {
     void (*on_transition)();
     void transition() {
-      if (on_transition != NULL) {
+      if (on_transition != nullptr) {
         on_transition();
       }
     }
@@ -118,7 +120,7 @@ protected:
     FsmMemFn on_transition;
     Fsm *fsm;
     void transition() {
-      if (on_transition != NULL)
+      if (on_transition != nullptr)
         CALL_MEMBER_FN(fsm, on_transition)();
     };
   };
@@ -130,8 +132,6 @@ protected:
   };
 
   void make_transition(TransitionInterface *transition);
-
-  StateInterface *getCurrentState();
 
   void reset_timers();
 
