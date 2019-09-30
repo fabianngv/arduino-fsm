@@ -77,7 +77,7 @@ struct StateMember : StateInterface {
 class Fsm {
 public:
   Fsm(StateInterface *initial_state);
-  ~Fsm();
+  virtual ~Fsm();
 
   void add_transition(StateInterface *state_from, StateInterface *state_to,
                       int event, void (*on_transition)());
