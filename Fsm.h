@@ -96,7 +96,7 @@ public:
   void check_timed_transitions();
 
   virtual void trigger(int event);
-  void run_machine();
+  virtual void run_machine();
 
   StateInterface *get_current_state();
 
