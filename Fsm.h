@@ -100,6 +100,14 @@ public:
 
   StateInterface *get_current_state();
 
+  /**
+   * @brief Force state change to @p m_current_state
+   * This function should only be used in unit testing
+   * @param state_to_change New state to which the current
+   *                        state will be changed
+   */
+  void set_current_state(StateInterface *state_to_change);
+
 protected:
   struct TransitionInterface {
     StateInterface *state_from;

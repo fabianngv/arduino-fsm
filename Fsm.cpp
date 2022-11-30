@@ -201,6 +201,10 @@ void Fsm::run_machine() {
 
 StateInterface *Fsm::get_current_state() { return m_current_state; }
 
+void Fsm::set_current_state(StateInterface *state_to_change) {
+   m_current_state = state_to_change; 
+}
+
 void Fsm::make_transition(TransitionInterface *transition) {
   // Execute the handlers in the correct order.
   transition->state_from->exit();
